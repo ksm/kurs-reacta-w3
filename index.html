@@ -316,7 +316,8 @@ class TimeboxList extends React.Component {
       { id: uuid.v4(), title: "I'm learning lists", totalTimeInMinutes: 25 },
       { id: uuid.v4(), title: "I'm learning forms", totalTimeInMinutes: 15 },
       { id: uuid.v4(), title: "I'm learning uncontrolled components", totalTimeInMinutes: 5 }
-    ]
+    ],
+    showsEditDialog: false,
   }
 
   addTimebox = (timebox) => {
@@ -342,25 +343,64 @@ class TimeboxList extends React.Component {
     })
   }
 
+  handleEdit = (index) => {
+    this.editingIndex = index;
+    this.toggleEditDialog();
+  }
+
   handleCreate = (createdTimebox) => {
     this.addTimebox(createdTimebox);
   }
 
+  toggleEditDialog = () => {
+    this.setState(prevState => {
+      return { showsEditDialog: !prevState.showsEditDialog }
+    })
+  }
+
+  handleEditDialogConfirm = (title, time) => {
+    this.setState(prevState => {
+      const updatedTimebox = {
+        ...prevState.timeboxes[this.editingIndex], 
+        title: title,
+        totalTimeInMinutes: time
+      }
+
+      const timeboxes = prevState.timeboxes
+      timeboxes[this.editingIndex] = updatedTimebox
+
+      return { timeboxes };
+    })
+
+    this.toggleEditDialog();
+  }
+
   render() {
-    return (
-      <>
-        <TimeboxCreator onCreate={this.handleCreate} />
-        {this.state.timeboxes.map((timebox, index) => (
-          <Timebox 
-            key={timebox.id} 
-            title={timebox.title} 
-            totalTimeInMinutes={timebox.totalTimeInMinutes} 
-            onDelete={() => this.removeTimebox(index)}
-            onEdit={() => this.handleEdit(index)}
-          />
-        ))}
-      </>
-    )
+    if (this.state.showsEditDialog) {
+      return (
+        <TimeboxDialog 
+          title={this.state.timeboxes[this.editingIndex].title}
+          time={this.state.timeboxes[this.editingIndex].totalTimeInMinutes}
+          onCancel={this.toggleEditDialog}
+          onConfirm={this.handleEditDialogConfirm}
+        />
+      )
+    } else {
+      return (
+        <>
+          <TimeboxCreator onCreate={this.handleCreate} />
+          {this.state.timeboxes.map((timebox, index) => (
+            <Timebox 
+              key={timebox.id} 
+              title={timebox.title} 
+              totalTimeInMinutes={timebox.totalTimeInMinutes} 
+              onDelete={() => this.removeTimebox(index)}
+              onEdit={() => this.handleEdit(index)}
+            />
+          ))}
+        </>
+      )
+    }
   }
 }
 
@@ -372,6 +412,38 @@ function Timebox ({ title, totalTimeInMinutes, onDelete, onEdit }) {
       <button onClick={onEdit}>Edit</button>
     </div>
   )
+}
+
+class TimeboxDialog extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.titleInput = React.createRef();
+    this.timeInput = React.createRef();
+  }
+
+  handleConfirm = (event) => {
+    this.props.onConfirm(
+      this.titleInput.current.value,
+      this.timeInput.current.value
+    )
+  }
+
+  render() {
+    const { title, time, onCancel, onConfirm } = this.props;
+    return (
+      <dialog open>
+        <form method="dialog">
+          <label>Title: <input ref={this.titleInput} type="text" defaultValue={title} /></label><br />
+          <label>Time: <input ref={this.timeInput} type="number" defaultValue={time} /></label>
+          <menu>
+            <button onClick={onCancel}>Cancel</button>
+            <button onClick={this.handleConfirm}>Confirm</button>
+          </menu>
+        </form>
+      </dialog>
+    )
+  }
 }
 
 function App() {
